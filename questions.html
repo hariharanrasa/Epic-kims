@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vinaa-Vettayyan Set Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #FFF0A5; padding: 20px; color: #468966; }
+        .container { max-width: 1000px; margin: auto; background:white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .setup-box { background: #fff; border: 1px solid #d1d9e6; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: left; }
+        input, select { padding: 10px; margin: 10px 0; width: 100%; max-width: 400px; border: 1px solid #ccc; border-radius: 6px; display: block; }
+        
+        /* Buttons */
+        .btn-group { margin: 20px 0; }
+        button { padding: 12px 25px; color: white; border: none; cursor: pointer; border-radius: 6px; font-weight: bold; margin-right: 10px; }
+        .btn-set { background: #00695c; }
+        .btn-set:hover { background: #004d40; }
+        .btn-print { background: #2196F3; }
+        
+        /* Paper Format */
+        #paper { text-align: left; margin-top: 40px; padding: 60px; border: 2px solid #333; background: white; display: none; line-height: 1.6; }
+        .section-head { font-weight: bold; text-decoration: underline; margin-top: 25px; display: block; text-transform: uppercase; border-bottom: 1px solid #eee; }
+        .or-choice { text-align: center; font-weight: bold; margin: 15px 0; font-style: italic; }
+        .compulsory { color: #d32f2f; font-weight: bold; font-size: 0.9em; border: 1px solid #d32f2f; padding: 2px 5px; border-radius: 3px; }
+        .right-marks { float: right; font-weight: bold; }
+
+        @media print {
+            .no-print { display: none !important; }
+            #paper { display: block !important; border: none; padding: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container no-print">
+    <h2>Question Paper Generator (Set A / Set B)</h2>
+
+    <div class="setup-box">
+        <strong>1. Upload Excel Bank</strong>
+        <input type="file" id="upload" accept=".xlsx, .xls">
+    </div>
+
+    <div class="setup-box">
+        <strong>2. Paper Info</strong>
+        <input type="text" id="school" placeholder="School Name">
+        <input type="text" id="exam_name" placeholder="Exam Name">
+        <select id="marks_template">
+            <option value="75">75 Marks</option>
+            <option value="100">100 Marks</option>
+        </select>
+    </div>
+
+    <div class="setup-box">
+        <strong>3. Select Units</strong>
+        <div id="unitList"><em>Upload file first...</em></div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-set" onclick="generate('A')">Generate SET A</button>
+        <button class="btn-set" onclick="generate('B')">Generate SET B</button>
+        <button class="btn-print" onclick="window.print()">Print to PDF</button>
+    </div>
+</div>
+
+<div id="paper"></div>
+
+<script>
+let fullBank = [];
+
+document.getElementById('upload').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        fullBank = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        
+        const units = [...new Set(fullBank.map(q => q.unit))];
+        const container = document.getElementById('unitList');
+        container.innerHTML = "";
+        units.forEach(u => {
+            if(u) container.innerHTML += `<label style="margin-right:15px;"><input type="checkbox" class="unit-check" value="${u}" checked> ${u}</label>`;
+        });
+    };
+    reader.readAsArrayBuffer(e.target.files[0]);
+});
+
+function shuffle(arr) { return arr.sort(() => 0.5 - Math.random()); }
+
+function generate(setName) {
+    if(fullBank.length === 0) return alert("Upload Excel first!");
+
+    const school = document.getElementById("school").value || "YOUR SCHOOL";
+    const exam = document.getElementById("exam_name").value || "EXAM";
+    const totalMarks = document.getElementById("marks_template").value;
+    
+    let selectedUnits = [...document.querySelectorAll(".unit-check:checked")].map(c => c.value);
+    let pool = fullBank.filter(q => selectedUnits.includes(q.unit));
+
+    // Separate Pools
+    let problemPool = shuffle(pool.filter(q => String(q.is_problem).toLowerCase() === 'yes'));
+    let theoryPool = pool.filter(q => String(q.is_problem).toLowerCase() !== 'yes');
+
+    let poolA = shuffle(theoryPool.filter(q => q.type == "A"));
+    let poolB = shuffle(theoryPool.filter(q => q.type == "B"));
+    let poolC = shuffle(theoryPool.filter(q => q.type == "C"));
+
+    let html = `
+        <div style="text-align:center">
+            <h1>${school}</h1>
+            <h2>${exam} - SET ${setName}</h2>
+            <p><strong>Time: 3 Hours <span style="float:right">Max Marks: ${totalMarks}</span></strong></p>
+            <hr style="border:1px solid #000">
+        </div>`;
+
+    // Part I: MCQ
+    html += "<span class='section-head'>Part - I (10 x 1 = 10)</span>";
+    poolA.slice(0, 10).forEach((q, i) => {
+        html += `<p>${i+1}. ${q.q}<br>(a) ${q.a} &nbsp; (b) ${q.b} &nbsp; (c) ${q.c} &nbsp; (d) ${q.d}</p>`;
+    });
+
+    // Part II: 2 Marks (Q11-17, Q17 is Problem)
+    html += "<span class='section-head'>Part - II (Answer any 5. Q.17 is Compulsory)</span>";
+    for(let i=11; i<=17; i++) {
+        let qData = (i === 17) ? (problemPool.pop() || {q: "Problem Sum..."}) : (poolB.pop() || {q: "Theory..."});
+        html += `<p>${i}. ${qData.q} ${i===17 ? '<span class="compulsory">COMPULSORY PROBLEM</span>' : ''} <span class='right-marks'>2</span></p>`;
+    }
+
+    // Part III: 4 Marks (Q18-23, Q23 is Problem)
+    html += "<span class='section-head'>Part - III (Answer any 4. Q.23 is Compulsory)</span>";
+    for(let i=18; i<=23; i++) {
+        let qData = (i === 23) ? (problemPool.pop() || {q: "Problem Sum..."}) : (poolC.pop() || {q: "Theory..."});
+        html += `<p>${i}. ${qData.q} ${i===23 ? '<span class="compulsory">COMPULSORY PROBLEM</span>' : ''} <span class='right-marks'>4</span></p>`;
+    }
+
+    // Part IV: 7 Marks Internal Choice
+    html += "<span class='section-head'>Part - IV (Internal Choice) 7 x 2 = 14</span>";
+    for(let i=1; i<=2; i++) {
+        let qNum = 23 + i;
+        html += `
+            <div style="margin-bottom:15px;">
+                <strong>${qNum}. (a)</strong> (i) ${poolB.pop().q} (3m) & (ii) ${poolC.pop().q} (4m)
+                <div class="or-choice">OR</div>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(b)</strong> (i) ${poolB.pop().q} (3m) & (ii) ${poolC.pop().q} (4m)
+            </div>`;
+    }
+
+   
+    
+
+    document.getElementById("paper").innerHTML = html;
+    document.getElementById("paper").style.display = "block";
+}
+</script>
+</body>
+</html>

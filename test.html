@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KIMS - Vinaa Vettayyan Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #020617; padding: 20px; color: #f8fafc; }
+        .container { max-width: 800px; margin: auto; background:#0f172a; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .setup-box { background: rgba(255,255,255,0.03); border: 1px solid #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        input, select { padding: 12px; margin: 10px 0; width: 100%; background: #020617; border: 1px solid #334155; color: white; border-radius: 8px; }
+        h2 { color: #22d3ee; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+        
+        .btn-set { background: #0891b2; color: white; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; margin-right: 5px; }
+        .btn-set:hover { background: #06b6d4; }
+        .btn-print { background: #475569; color: white; padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; }
+
+        /* Paper Styles */
+        #paper { text-align: left; margin-top: 40px; padding: 50px; background: white; color: black; display: none; border-radius: 5px; }
+        .section-head { font-weight: bold; display: block; text-transform: uppercase; border-bottom: 2px solid #000; margin-top: 20px; padding-bottom: 5px; }
+        .compulsory { border: 1px solid black; padding: 1px 4px; font-size: 0.8em; font-weight: bold; }
+        .right-marks { float: right; font-weight: bold; }
+        .or-choice { text-align: center; font-weight: bold; margin: 10px 0; }
+
+        @media print {
+            .no-print { display: none !important; }
+            #paper { display: block !important; padding: 0; width: 100%; border: none; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container no-print">
+    <h2>Vinaa-Vettayyan 2.0</h2>
+
+    <div class="setup-box">
+        <label class="text-xs font-bold text-slate-500 uppercase">1. Excel File</label>
+        <input type="file" id="upload" accept=".xlsx, .xls">
+    </div>
+
+    <div class="setup-box">
+        <input type="text" id="school" placeholder="School Name (e.g. KIMS)">
+        <input type="text" id="exam_name" placeholder="Exam Name (e.g. Revision 1)">
+        <select id="marks_template">
+            <option value="50">50 Marks</option>
+            <option value="100">100 Marks</option>
+        </select>
+    </div>
+
+    <div class="setup-box" id="unitContainer">
+        <label class="text-xs font-bold text-slate-500 uppercase">Select Units</label>
+        <div id="unitList" class="mt-2 text-sm italic">Upload file first...</div>
+    </div>
+
+    <div class="flex gap-2">
+        <button class="btn-set" onclick="generate('A')">Generate SET A</button>
+        <button class="btn-set" onclick="generate('B')">Generate SET B</button>
+        <button class="btn-print" onclick="window.print()">Print PDF</button>
+    </div>
+</div>
+
+<div id="paper"></div>
+
+<script>
+let fullBank = [];
+
+document.getElementById('upload').addEventListener('change', function(e) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        fullBank = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        
+        const units = [...new Set(fullBank.map(q => q.unit))].filter(Boolean);
+        const container = document.getElementById('unitList');
+        container.innerHTML = "";
+        units.forEach(u => {
+            container.innerHTML += `<label style="display:block; margin-bottom:5px;"><input type="checkbox" class="unit-check" value="${u}" checked> Unit ${u}</label>`;
+        });
+    };
+    reader.readAsArrayBuffer(e.target.files[0]);
+});
+
+function shuffle(arr) { return arr.sort(() => 0.5 - Math.random()); }
+
+function getQ(pool) {
+    return pool.length > 0 ? pool.pop() : { q: "--- Question Not Available ---", a: "-", b: "-", c: "-", d: "-" };
+}
+
+function generate(setName) {
+    if(fullBank.length === 0) return alert("Please upload an Excel file first!");
+
+    const school = document.getElementById("school").value || "KIMS MATRIC HR SEC SCHOOL";
+    const exam = document.getElementById("exam_name").value || "EXAMINATION";
+    const totalMarks = document.getElementById("marks_template").value;
+    
+    let selectedUnits = [...document.querySelectorAll(".unit-check:checked")].map(c => c.value);
+    let pool = fullBank.filter(q => selectedUnits.includes(String(q.unit)));
+
+    // Pools
+    let problemPool = shuffle(pool.filter(q => String(q.is_problem).toLowerCase() === 'yes'));
+    let poolA = shuffle(pool.filter(q => q.type == "A"));
+    let poolB = shuffle(pool.filter(q => q.type == "B"));
+    let poolC = shuffle(pool.filter(q => q.type == "C"));
+
+    let html = `
+        <div style="text-align:center; border-bottom: 2px solid black; padding-bottom: 10px;">
+            <h1 style="margin:0">${school}</h1>
+            <h3 style="margin:5px 0">${exam} - SET ${setName}</h3>
+            <p><strong>Time: 3 Hours <span style="float:right">Max Marks: ${totalMarks}</span></strong></p>
+        </div>`;
+
+    // Part I
+    html += "<span class='section-head'>Part - I (10 x 1 = 10)</span><p><em>Choose the correct answer:</em></p>";
+    for(let i=1; i<=10; i++) {
+        let q = getQ(poolA);
+        html += `<p>${i}. ${q.q}<br>&nbsp;&nbsp;&nbsp;(a) ${q.a} &nbsp;&nbsp; (b) ${q.b} &nbsp;&nbsp; (c) ${q.c} &nbsp;&nbsp; (d) ${q.d}</p>`;
+    }
+
+    // Part II
+    html += "<span class='section-head'>Part - II (Answer any 5. Q.17 is Compulsory)</span>";
+    for(let i=11; i<=17; i++) {
+        let qData = (i === 17) ? getQ(problemPool) : getQ(poolB);
+        html += `<p>${i}. ${qData.q} ${i===17 ? '<span class="compulsory">COMPULSORY</span>' : ''} <span class='right-marks'>2</span></p>`;
+    }
+
+    // Part III
+    html += "<span class='section-head'>Part - III (Answer any 4. Q.23 is Compulsory)</span>";
+    for(let i=18; i<=23; i++) {
+        let qData = (i === 23) ? getQ(problemPool) : getQ(poolC);
+        html += `<p>${i}. ${qData.q} ${i===23 ? '<span class="compulsory">COMPULSORY</span>' : ''} <span class='right-marks'>4</span></p>`;
+    }
+
+    // Part IV
+    html += "<span class='section-head'>Part - IV (Internal Choice) 2 x 7 = 14</span>";
+    for(let i=1; i<=2; i++) {
+        let qNum = 23 + i;
+        html += `
+            <div style="margin-bottom:20px;">
+                <strong>${qNum}. (a)</strong> (i) ${getQ(poolB).q} (3m) <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ii) ${getQ(poolC).q} (4m)
+                <div class="or-choice">(OR)</div>
+                <strong>&nbsp;&nbsp;&nbsp;&nbsp;(b)</strong> (i) ${getQ(poolB).q} (3m) <br> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ii) ${getQ(poolC).q} (4m)
+            </div>`;
+    }
+
+    document.getElementById("paper").innerHTML = html;
+    document.getElementById("paper").style.display = "block";
+    window.scrollTo(0, document.body.scrollHeight);
+}
+</script>
+</body>
+</html>

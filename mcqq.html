@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vinaa-Vettayyan Pro | AI Assessment</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #ec4899;
+            --bg: #09090b;
+            --card-bg: #18181b;
+            --text: #fafafa;
+            --accent: #10b981;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: var(--bg); 
+            background-image: radial-gradient(circle at top right, #2e1065, transparent), radial-gradient(circle at bottom left, #4c1d95, transparent);
+            color: var(--text);
+            margin: 0;
+            display: flex; justify-content: center; padding: 40px 20px; min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container { 
+            background: var(--card-bg); width: 100%; max-width: 850px; padding: 50px; 
+            border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8); 
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 { 
+            text-align: center; 
+            background: linear-gradient(135deg, #ddd6fe, #f472b6); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+            font-size: 42px; font-weight: 800; margin-bottom: 40px; letter-spacing: -1px;
+        }
+
+        /* Inputs & Form */
+        .input-group { margin-bottom: 25px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #a1a1aa; font-weight: 600; }
+        
+        .input-box { 
+            width: 100%; padding: 16px; background: #27272a; border: 1px solid #3f3f46; 
+            border-radius: 14px; color: white; box-sizing: border-box; font-size: 16px; 
+            transition: all 0.3s ease;
+        }
+        .input-box:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2); }
+
+        /* Buttons */
+        .btn { 
+            background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+            color: white; border: none; padding: 18px; border-radius: 16px; 
+            cursor: pointer; width: 100%; font-size: 18px; font-weight: 700; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.5);
+        }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 20px 30px -5px rgba(139, 92, 246, 0.6); opacity: 0.9; }
+        .btn:active { transform: translateY(0); }
+
+        /* Quiz UI */
+        #infoBar { 
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            padding: 15px; border-radius: 16px; margin-bottom: 30px; 
+            font-weight: 600; font-size: 14px; text-align: center; display: flex; justify-content: space-around;
+        }
+
+        .q-card { 
+            background: #27272a; padding: 30px; margin-bottom: 25px; border-radius: 20px; 
+            border: 1px solid var(--border); transition: 0.3s;
+        }
+        .q-card:hover { border-color: rgba(255,255,255,0.2); transform: scale(1.01); }
+        
+        .question-text { font-size: 20px; font-weight: 600; margin-bottom: 20px; line-height: 1.5; color: #e4e4e7; }
+
+        .option-item { 
+            background: #18181b; padding: 16px; margin: 12px 0; border-radius: 12px; 
+            display: flex; align-items: center; cursor: pointer; transition: 0.2s; 
+            border: 1px solid #3f3f46;
+        }
+        .option-item:hover { background: #3f3f46; border-color: var(--primary); }
+        
+        input[type="radio"] { 
+            margin-right: 15px; width: 20px; height: 20px; accent-color: var(--primary); 
+        }
+
+        /* Loading & Results */
+        #loadingSection { text-align: center; display: none; padding: 80px 0; }
+        .loader-ring {
+            width: 80px; height: 80px; margin: 0 auto 20px;
+            border: 6px solid #27272a; border-top: 6px solid var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        #resultSection { display: none; text-align: center; animation: zoomIn 0.6s ease; }
+        .score-circle { 
+            width: 180px; height: 180px; line-height: 180px; border-radius: 50%; 
+            background: rgba(16, 185, 129, 0.1); border: 6px solid var(--accent);
+            margin: 30px auto; font-size: 52px; font-weight: 800; color: var(--accent);
+            text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Vinaa-Vettayyan Pro</h1>
+
+    <div id="loginSection">
+        <div class="input-group">
+            <label>Question Database (.xlsx)</label>
+            <input type="file" id="excelFile" class="input-box" accept=".xlsx, .xls">
+        </div>
+        
+        <div class="input-group">
+            <label>Student Identity</label>
+            <input type="text" id="name" class="input-box" placeholder="Full Name" style="margin-bottom:10px">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="targetClass" class="input-box" placeholder="Class (e.g. 10)">
+                <input type="text" id="roll" class="input-box" placeholder="Roll No.">
+            </div>
+        </div>
+        
+        <button class="btn" onclick="processData()">INITIALIZE TEST</button>
+    </div>
+
+    <div id="quizSection" class="hidden">
+        <div id="infoBar">
+            <span id="dispName"></span>
+            <span id="dispClass"></span>
+            <span id="dispRoll"></span>
+        </div>
+        <div id="questionsContainer"></div>
+        <button class="btn" style="background: var(--accent); margin-top: 20px;" onclick="startGrading()">FINISH ASSESSMENT</button>
+    </div>
+
+    <div id="loadingSection">
+        <div class="loader-ring"></div>
+        <h2 style="color: var(--primary);">Analyzing Responses...</h2>
+    </div>
+
+    <div id="resultSection">
+        <h2 id="resTitle">Assessment Summary</h2>
+        <div class="score-circle" id="finalScore">0</div>
+        <p style="color: #a1a1aa; font-size: 18px; margin-bottom: 30px;">Your performance has been logged successfully.</p>
+        <button class="btn" onclick="location.reload()">START NEW SESSION</button>
+    </div>
+</div>
+
+<script>
+    let masterQuestions = [];
+    let correctAnswers = [];
+
+    // Shuffle Algorithm (Fisher-Yates)
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function processData() {
+        const file = document.getElementById('excelFile').files[0];
+        const name = document.getElementById('name').value;
+        const cls = document.getElementById('targetClass').value;
+        const roll = document.getElementById('roll').value;
+
+        if(!file || !name || !cls) return alert("Please complete all fields and upload the file.");
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+                // Filter and Shuffle
+                let filtered = rawData.filter(q => q.CLASS.toString().toLowerCase() === cls.toLowerCase());
+                if(filtered.length === 0) return alert("No questions found for Class " + cls);
+
+                masterQuestions = shuffle(filtered).slice(0, 50); // Shuffled!
+                renderQuiz(name, cls, roll);
+            } catch (err) {
+                alert("Error reading Excel. Check your columns: UNIT, CLASS, QUESTION, a, b, c, d, answer");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function renderQuiz(name, cls, roll) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('quizSection').classList.remove('hidden');
+        
+        document.getElementById('dispName').innerText = "👤 " + name.toUpperCase();
+        document.getElementById('dispClass').innerText = "📚 CLASS: " + cls;
+        document.getElementById('dispRoll').innerText = "🆔 ID: " + roll;
+
+        const container = document.getElementById('questionsContainer');
+        container.innerHTML = "";
+        correctAnswers = [];
+
+        masterQuestions.forEach((q, i) => {
+            correctAnswers.push(q.answer.toString().trim().toUpperCase());
+            container.innerHTML += `
+                <div class="q-card">
+                    <div class="question-text">${i+1}. ${q.QUESTION}</div>
+                    <label class="option-item"><input type="radio" name="q${i}" value="A"> A. ${q.a}</label>
+                    <label class="option-item"><input type="radio" name="q${i}" value="B"> B. ${q.b}</label>
+                    <label class="option-item"><input type="radio" name="q${i}" value="C"> C. ${q.c}</label>
+                    <label class="option-item"><input type="radio" name="q${i}" value="D"> D. ${q.d}</label>
+                </div>`;
+        });
+        window.scrollTo(0, 0);
+    }
+
+    function startGrading() {
+        document.getElementById('quizSection').classList.add('hidden');
+        document.getElementById('loadingSection').style.display = 'block';
+        setTimeout(calculateScore, 2000);
+    }
+
+    function calculateScore() {
+        let score = 0;
+        masterQuestions.forEach((_, i) => {
+            const selected = document.querySelector(`input[name="q${i}"]:checked`);
+            if(selected && selected.value === correctAnswers[i]) {
+                score++;
+            }
+        });
+
+        document.getElementById('loadingSection').style.display = 'none';
+        document.getElementById('resultSection').style.display = 'block';
+        document.getElementById('finalScore').innerText = `${score} / ${masterQuestions.length}`;
+    }
+</script>
+
+</body>
+</html>

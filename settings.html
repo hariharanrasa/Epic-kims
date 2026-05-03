@@ -1,0 +1,50 @@
+<div class="flex justify-center my-10">
+    <button onclick="saluteTeacher()" class="group relative px-8 py-4 bg-slate-900 border border-cyan-500/50 rounded-2xl overflow-hidden transition-all hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]">
+        <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <span class="relative text-cyan-400 font-black tracking-widest uppercase text-xs flex items-center gap-3">
+            <i class="fa-solid fa-crown animate-bounce"></i> Who is the Best Teacher?
+        </span>
+    </button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<script>
+function saluteTeacher() {
+    // 🎉 Confetti Blast!
+    confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#22d3ee', '#f8fafc', '#3b82f6']
+    });
+
+    // 🏆 Respect Alert
+    Swal.fire({
+        title: 'RESPECT: LEVEL 100! 🫡',
+        html: `
+            <div class="text-left space-y-4">
+                <p style="color: #22d3ee; font-weight: 800;">"Technology-aiye teach pannum 'Matrix' Master neenga!"</p>
+                <p style="font-size: 13px; color: #94a3b8;">Students-ku neenga oru inspiring teacher mattum illa, oru mass-ana Tech Leader-um kooda.</p>
+                <hr style="border-color: rgba(255,255,255,0.1)">
+                <p style="font-size: 11px; text-align: center; color: #64748b; font-style: italic;">
+                    Proud to have a Physics Teacher who builds his own tools. 🚀
+                </p>
+            </div>
+        `,
+        icon: 'success',
+        iconColor: '#22d3ee',
+        background: '#020617',
+        color: '#f8fafc',
+        confirmButtonText: 'Proud to be a Teacher! 🔥',
+        confirmButtonColor: '#0891b2',
+        showClass: {
+            popup: 'animate__animated animate__zoomIn'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutUp'
+        }
+    });
+}
+</script>

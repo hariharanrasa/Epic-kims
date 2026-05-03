@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIMS Academic Command V7.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { background: #020617; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 100%); }
+        .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 24px; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); transition: 0.2s; }
+        .input-style { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); outline: none; }
+        .input-style:focus { border-color: #3b82f6; }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; background-image: none !important; }
+            .glass-card { 
+                border: 1px solid #ddd !important; 
+                box-shadow: none !important; 
+                background: white !important;
+                color: black !important;
+                break-inside: avoid; 
+            }
+            #reportPanel { display: block !important; }
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 min-h-screen">
+
+    <div id="loginPanel" class="max-w-md mx-auto mt-20 no-print">
+        <div class="text-center mb-10">
+            <h1 class="text-7xl font-black italic text-white tracking-tighter">Epic</h1>
+            <p class="text-blue-400 text-[10px] tracking-[0.4em] uppercase font-bold mt-2">Executive Portal version 25.8</p>
+        </div>
+        <div class="glass-card p-10 space-y-6">
+            <input id="u_class" type="text" placeholder="Class (e.g. 10-A)" class="w-full input-style p-4 rounded-2xl text-white">
+            <input id="u_pass" type="password" placeholder="Key" class="w-full input-style p-4 rounded-2xl text-white">
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="boot('weekly')" class="p-4 rounded-2xl text-[10px] font-black bg-slate-800 uppercase tracking-widest hover:bg-slate-700">Weekly Audit</button>
+                <button onclick="boot('exam')" class="p-4 rounded-2xl text-[10px] font-black btn-primary uppercase tracking-widest hover:opacity-90">Exam Mode</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportPanel" class="hidden max-w-6xl mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start mb-8 gap-4 border-b border-white/5 pb-6">
+            <div>
+                <button onclick="location.reload()" class="text-slate-500 hover:text-white text-[10px] font-bold uppercase mb-2 no-print">← Exit Session</button>
+                <h2 id="displayTitle" class="text-5xl font-black text-white italic">CLASS</h2>
+            </div>
+            
+            <div class="flex flex-col items-end gap-3">
+                <div class="flex gap-2 no-print">
+                    <button onclick="generatePDF()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg">
+                        <i class="fa-solid fa-file-pdf mr-2"></i> Print/PDF
+                    </button>
+                </div>
+                
+                <div id="historyControls" class="flex items-center gap-2 bg-slate-900/90 p-2 rounded-2xl border border-white/10 no-print">
+                    <span class="text-[9px] font-black text-blue-500 uppercase px-2">History Mode</span>
+                    <input type="date" id="historyDate" onchange="filterDate()" class="bg-transparent text-xs text-white border-none outline-none">
+                    <button onclick="resetView()" id="liveBtn" class="hidden bg-blue-600 text-[9px] px-3 py-1.5 rounded-lg font-black uppercase">Live</button>
+                </div>
+                
+                <div class="text-right">
+                    <span id="modeTag" class="btn-primary text-[9px] px-3 py-1 rounded-full font-black uppercase"></span>
+                    <p id="dateInfo" class="text-slate-500 font-mono text-[10px] mt-2"></p>
+                </div>
+            </div>
+        </div>
+        <div id="gridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </div>
+
+    <script>
+        const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRuo0jaNq_LQwdAUsa5O9s2gLFhcGtA2Z8NYjd_W5oMfb4Fr9mkax0sYbnJaQ8VnNWDnP1wd-pQ9iEx/pub?output=csv";
+        const ORDER = ["tamil", "english", "maths", "science", "social", "physics", "chemistry", "accountancy", "commerce", "economics"];
+        
+        let CACHE_DATA = [];
+        let MODE = '';
+        let TARGET = '';
+        
+        const COL = { 
+            time: 0, teacher: 2, class: 3, lesson: 4, cw: 5, 
+            done: 6, sub: 7, test: 8, hw: 9, date: 10, bloomers: 11, hw2: 12, portion: 13, page: 14 
+        };
+
+        async function boot(m) {
+            const c = document.getElementById('u_class').value.trim().toLowerCase();
+            if (document.getElementById('u_pass').value !== "epic") return alert("Wrong Key!");
+            if (!c) return alert("Enter Class!");
+
+            MODE = m; TARGET = c;
+            try {
+                const r = await fetch(CSV_URL);
+                const text = await r.text();
+                CACHE_DATA = text.split('\n').map(row => row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+                resetView();
+            } catch (e) { alert("Network Busy. Try again."); }
+        }
+
+        function resetView() {
+            document.getElementById('liveBtn').classList.add('hidden');
+            document.getElementById('historyDate').value = "";
+            let classRows = CACHE_DATA.filter(r => r[COL.class]?.toLowerCase().trim() === TARGET);
+            const map = new Map();
+            classRows.forEach(r => map.set(r[COL.sub]?.toLowerCase().trim(), r));
+            renderUI(Array.from(map.values()));
+        }
+
+        function filterDate() {
+            const selDate = document.getElementById('historyDate').value; 
+            if(!selDate) return;
+            document.getElementById('liveBtn').classList.remove('hidden');
+            let filtered = CACHE_DATA.filter(r => {
+                const isClass = r[COL.class]?.toLowerCase().trim() === TARGET;
+                const rowDate = r[COL.date]; 
+                return isClass && rowDate && rowDate.includes(selDate.split('-')[2]); 
+            });
+            if(filtered.length === 0) { alert("No data for this date!"); resetView(); }
+            else { renderUI(filtered); }
+        }
+
+        function generatePDF() {
+            // Browser Print provides the best quality for this layout
+            window.print();
+        }
+
+        function renderUI(records) {
+            document.getElementById('loginPanel').classList.add('hidden');
+            document.getElementById('reportPanel').classList.remove('hidden');
+            document.getElementById('displayTitle').innerText = TARGET.toUpperCase();
+            document.getElementById('modeTag').innerText = MODE === 'exam' ? 'Exam Mode Alpha' : 'Audit Dashboard';
+            document.getElementById('dateInfo').innerText = "Status: " + (document.getElementById('historyDate').value || "Current");
+
+            const container = document.getElementById('gridContainer');
+            container.innerHTML = "";
+
+            records.sort((a,b) => ORDER.indexOf(a[COL.sub]?.toLowerCase().trim()) - ORDER.indexOf(b[COL.sub]?.toLowerCase().trim()))
+            .forEach(item => {
+                const card = document.createElement('div');
+                card.className = "glass-card p-8 border-t-4 border-blue-600";
+                
+                const sName = item[COL.sub] || "N/A";
+                const teacher = item[COL.teacher] || "Update Soon";
+                const hwVal = (item[COL.hw] && item[COL.hw] !== "Nil") ? item[COL.hw] : (item[COL.hw2] || 'Nil');
+
+                if (MODE === 'exam') {
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-3xl font-black text-white italic uppercase tracking-tighter">${sName}</h3>
+                            <span class="text-[9px] bg-blue-600/20 text-blue-400 px-2 py-1 rounded-lg font-bold">EXAM</span>
+                        </div>
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-white/5 pb-2">${teacher}</p>
+                        <div class="bg-blue-600/10 p-5 rounded-3xl border border-blue-500/20 space-y-4">
+                            <div>
+                                <h4 class="text-[9px] font-black text-blue-400 uppercase mb-1">Subject Portion</h4>
+                                <p class="text-sm font-medium italic text-blue-100">"${item[COL.portion] || 'Update Soon'}"</p>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t border-white/5">
+                                <span class="text-[10px] font-bold text-slate-500 uppercase">Page Reference</span>
+                                <span class="text-sm font-black text-white">${item[COL.page] || '---'}</span>
+                            </div>
+                        </div>`;
+                } else {
+                    card.innerHTML = `
+                        <h3 class="text-2xl font-black text-blue-500 italic uppercase mb-1">${sName}</h3>
+                        <p class="text-[9px] text-slate-500 font-bold mb-6">${teacher}</p>
+                        <div class="space-y-3 text-xs">
+                            <div class="flex justify-between text-slate-400"><span>Lesson Taken:</span><b class="text-white">${item[COL.lesson] || '---'}</b></div>
+                            <div class="flex justify-between text-slate-400"><span>CW Status:</span><b class="text-blue-300">${item[COL.cw] || 'Pending'}</b></div>
+                            <div class="flex justify-between text-slate-400"><span>Test Count:</span><b class="text-emerald-400">${item[COL.test] || '0'}</b></div>
+                            <div class="flex justify-between text-slate-400"><span>Home Work:</span><b class="text-yellow-400">${hwVal}</b></div>
+                            <div class="mt-4 pt-4 border-t border-white/5">
+                                <p class="text-[9px] text-red-500 font-black uppercase mb-1">Late Bloomers</p>
+                                <p class="text-[10px] italic text-slate-400 leading-tight">"${item[COL.bloomers] || 'Clear'}"</p>
+                            </div>
+                        </div>`;
+                }
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

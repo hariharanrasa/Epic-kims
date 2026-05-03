@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIMS Alpha Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Plus+Jakarta+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* ---------- GLOBAL & BODY (Updated to Dark Tech Theme) ---------- */
+        * { padding: 0; margin: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #020617; /* Dark Navy Background */
+            background-image: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* ---------- SPLASH SCREEN (NO CHANGES TO ANIMATION) ---------- */
+        #splash {
+            background: #020617;
+            position: fixed;
+            left: 0; top: 0; width: 100%; height: 100%;
+            z-index: 100;
+            animation: splash 3s ease-in;
+            animation-fill-mode: forwards;
+        }
+
+        #loader {
+            position: absolute; left: 50%; top: 0; transform: translate(-50%,0);
+        }
+
+        #loader:after {
+            content: ''; position: absolute; left: 50%; margin-left: -8px; bottom: -170px;
+            width: 3px; background: linear-gradient(to bottom, #fff 0%, transparent 100%); height: 200px;
+        }
+
+        .splash-text {
+            position: absolute; top: 70%; left: 50%; transform: translate(-50%,-50%);
+            color: white; font-size: 32px; letter-spacing: 4px; text-align: center;
+            font-family: 'Cinzel', serif; font-weight: 900; text-transform: uppercase;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            animation: fadeText 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes fadeText { from { opacity: 0.5; } to { opacity: 1; } }
+
+        #splash .anim {
+            height: 100%; position: absolute; left: 50%; width: 100px;
+            transform: translate(-50%,100%); animation: loader 4s linear forwards;
+        }
+
+        @keyframes loader { 0% { transform: translate(-50%,110%); } 30% { transform: translate(-50%,50%); } 100% { transform: translate(-50%,0%); } }
+        @keyframes splash { 0%, 50% { transform: translate(0%,0%); } 100% { transform: translate(0%,-100%); } }
+
+        /* ---------- LOGIN FORM (Updated High-Tech Colors) ---------- */
+        form {
+            width: 400px;
+            padding: 45px;
+            border-radius: 24px;
+            /* Updated to Dark Glassmorphism */
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 210, 255, 0.2);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        header h2 { 
+            font-size: 2.2rem; 
+            margin-bottom: 8px; 
+            color: #00d2ff; /* Neon Blue */
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        header p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+
+        /* INPUT STYLES */
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: 0.3s;
+        }
+
+        .input-group:focus-within {
+            border-color: #00d2ff;
+            background: rgba(0, 210, 255, 0.05);
+        }
+
+        .input-item {
+            padding: 15px;
+            color: #00d2ff;
+            font-size: 18px;
+        }
+
+        input {
+            width: 100%;
+            background: transparent;
+            padding: 15px;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        #eye {
+            padding: 15px;
+            cursor: pointer;
+            color: #64748b;
+            transition: 0.3s;
+        }
+
+        #eye:hover { color: #00d2ff; }
+
+        /* BUTTON STYLE (Neon Pulse) */
+        button.log-in {
+            width: 100%;
+            padding: 16px;
+            background: #00d2ff;
+            color: #020617;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 16px;
+            text-transform: uppercase;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+
+        button.log-in:hover {
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        /* SHAKE & ERROR */
+        .shake {
+            animation: shake-horizontal 0.5s cubic-bezier(.36,.07,.19,.97) both;
+            border: 1px solid #ff4d4d !important;
+        }
+
+        @keyframes shake-horizontal {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .error-text {
+            color: #ff4d4d;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<form id="loginForm">
+    <header>
+        <h2>Epic kims core</h2>
+        <p>version 25.8</p>
+    </header>
+
+    <div class="field-set">
+        <div class="input-group">
+            <span class="input-item"><i class="fa fa-user-circle"></i></span>
+            <input type="text" id="username" placeholder="Username" required>
+        </div>
+
+        <div class="input-group">
+            <span class="input-item"><i class="fa fa-key"></i></span>
+            <input type="password" id="pwd" placeholder="Password" required>
+            <i class="fa fa-eye" id="eye"></i>
+        </div>
+
+        <p id="errorMsg" class="error-text">ACCESS DENIED! WRONG KEY.</p>
+
+        <button type="button" class="log-in" onclick="checkLogin()">Enter Portal</button>
+    </div>
+</form>
+
+<div id="splash">
+    <div class="splash-text">Andha flightoda ownera naan</div>
+    <div class="anim">
+        <div id="loader">
+            <svg version="1.1" width="60px" height="70px" viewBox="0 0 60 70">
+                <g id="airplane">
+                    <path fill=red d="M0.677,20.977l4.355,1.631c0.281,0.104,0.579,0.162,0.88,0.16l9.76-0.004L30.46,41.58c0.27,0.34,0.679,0.545,1.112,0.541h1.87c0.992,0,1.676-0.992,1.322-1.918l-6.643-17.439l6.914,0.002l6.038,6.037c0.265,0.266,0.624,0.412,0.999,0.418l1.013-0.004c1.004-0.002,1.684-1.012,1.312-1.938l-2.911-7.277l2.912-7.278c0.372-0.928-0.313-1.941-1.313-1.938h1.017c-0.375,0-0.732,0.15-0.996,0.414l-6.039,6.039h-6.915l6.646-17.443c0.354-0.926-0.33-1.916-1.321-1.914l-1.87-0.004c-0.439,0.004-0.843,0.203-1.112,0.543L15.677,17.24l-9.765-0.002c-0.3,0.002-0.597,0.055-0.879,0.16L0.678,19.03C-0.225,19.36-0.228,20.637,0.677,20.977z" transform="translate(44,0) rotate(90 0 0)" />
+                </g>
+            </svg>
+        </div>
+    </div>
+</div>
+
+<script>
+    const pwdInput = document.getElementById('pwd');
+    const eyeIcon = document.getElementById('eye');
+
+    eyeIcon.addEventListener('click', () => {
+        const type = pwdInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        pwdInput.setAttribute('type', type);
+        eyeIcon.classList.toggle('fa-eye-slash');
+    });
+
+    function checkLogin() {
+        const pass = document.getElementById("pwd").value;
+        const loginForm = document.getElementById("loginForm");
+        const errorMsg = document.getElementById("errorMsg");
+
+        if (pass.toLowerCase() === "wolf") {
+            window.location.href = "body.html"; 
+        } else {
+            errorMsg.style.display = "block";
+            loginForm.classList.add("shake");
+            setTimeout(() => {
+                loginForm.classList.remove("shake");
+            }, 1000);
+        }
+    }
+</script>
+</body>
+</html>

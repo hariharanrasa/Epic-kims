@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIMS MATRIX PRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        body { background: #020617; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        #sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(-100%); }
+        #sidebar.open { transform: translateX(0); }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .day-box { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; border-radius: 12px; background: rgba(255,255,255,0.03); font-weight: 600; transition: 0.3s; }
+        .day-box:hover { background: rgba(6, 182, 212, 0.1); color: #06b6d4; }
+        .today { background: #06b6d4; color: #000; font-weight: 800; box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); }
+        .day-label { color: #64748b; font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; }
+    </style>
+</head>
+<body class="relative min-h-screen">
+
+    <header class="p-5 flex justify-between items-center fixed top-0 w-full z-40 glass">
+        <button onclick="toggleSidebar()" class="w-10 h-10 flex flex-col justify-center items-center gap-1.5">
+            <span class="w-6 h-0.5 bg-cyan-400"></span>
+            <span class="w-6 h-0.5 bg-cyan-400"></span>
+            <span class="w-6 h-0.5 bg-cyan-400"></span>
+        </button>
+        <h1 class="text-xl font-black italic">Epic<span class="text-cyan-400">-kims core</span></h1>
+        <div class="w-10 h-10 bg-slate-800 rounded-full border border-cyan-500/30 flex items-center justify-center">
+            <i class="fa-solid fa-user text-cyan-400 text-xs"></i>
+        </div>
+    </header>
+
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-72 z-50 glass p-6">
+        <div class="flex justify-between items-center mb-10">
+            <span class="text-[10px] font-black text-slate-500 tracking-widest uppercase">Navigation</span>
+            <button onclick="toggleSidebar()"><i class="fa-solid fa-xmark text-xl text-slate-400"></i></button>
+        </div>
+        <nav class="space-y-3">
+            <a href="approve.html" class="flex items-center gap-4 p-4 rounded-2xl bg-cyan-500/10 text-cyan-400 font-bold hover:bg-cyan-500/20 transition">
+    <i class="fa-solid fa-microchip text-xl"></i> Home
+</a>
+<a href="newai.html" class="flex items-center gap-4 p-4 rounded-2xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition">
+    <i class="fa-solid fa-satellite-dish text-xl"></i> Timetable
+</a>
+<a href="newtt.html" class="flex items-center gap-4 p-4 rounded-2xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition">
+    <i class="fa-solid fa-network-wired text-xl"></i> e-Time Table
+</a>
+
+<a href="updates.html" class="flex items-center gap-4 p-4 rounded-2xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition">
+    <i class="fa-solid fa-bolt-lightning text-xl"></i> Updates
+</a>
+
+<a href="test.html" class="flex items-center gap-4 p-4 rounded-2xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition">
+    <i class="fa-solid fa-brain text-xl"></i> ai-qus
+</a>
+
+<a href="mcqq.html" class="flex items-center gap-4 p-4 rounded-2xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition">
+    <i class="fa-solid fa-shield-halved text-xl"></i> E-test
+</a>
+<a href="settings.html" class="flex items-center gap-4 p-4 rounded-2xl text-slate-400 hover:text-cyan-400 hover:bg-white/5 transition">
+    <i class="fa-solid fa-gears text-xl"></i> Don't touch
+</a>
+  </nav>
+    </aside>
+
+    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/60 z-40 hidden backdrop-blur-sm"></div>
+
+    <main class="pt-24 p-6 max-w-md mx-auto">
+        
+        <div class="glass p-6 rounded-[35px] shadow-2xl">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 id="monthDisplay" class="text-2xl font-black text-white italic leading-none uppercase">Month</h3>
+                    <p id="yearDisplay" class="text-[10px] font-bold text-cyan-400 tracking-[0.4em] mt-1 uppercase">2026</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="changeMonth(-1)" class="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center hover:bg-cyan-500/20 transition"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                    <button onclick="changeMonth(1)" class="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center hover:bg-cyan-500/20 transition"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                </div>
+            </div>
+
+            <div class="calendar-grid text-center mb-4">
+                <div class="day-label">Sun</div><div class="day-label">Mon</div><div class="day-label">Tue</div>
+                <div class="day-label">Wed</div><div class="day-label">Thu</div><div class="day-label">Fri</div>
+                <div class="day-label">Sat</div>
+            </div>
+            
+            <div id="calendarDays" class="calendar-grid">
+                </div>
+        </div>
+
+        <div class="mt-8 space-y-4">
+            <div class="glass p-5 rounded-3xl flex items-center gap-4 border-l-4 border-cyan-500">
+                <i class="fa-solid fa-circle-check text-cyan-400"></i>
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-widest">System Online</span>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentDate = new Date(); // Innaiku date focus-la irukkum
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('hidden');
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarDays');
+            const mDisplay = document.getElementById('monthDisplay');
+            const yDisplay = document.getElementById('yearDisplay');
+            
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            const today = new Date();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", 
+                                "July", "August", "September", "October", "November", "December"];
+            
+            mDisplay.innerText = monthNames[month];
+            yDisplay.innerText = year;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            grid.innerHTML = "";
+
+            // Empty slots for start of month
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += '<div></div>';
+            }
+
+            // Actual days
+            for (let d = 1; d <= daysInMonth; d++) {
+                const isToday = (d === today.getDate() && month === today.getMonth() && year === today.getFullYear()) ? 'today' : '';
+                grid.innerHTML += `<div class="day-box ${isToday}">${d}</div>`;
+            }
+        }
+
+        function changeMonth(step) {
+            // Step 1 means next month, -1 means previous
+            currentDate.setMonth(currentDate.getMonth() + step);
+            renderCalendar();
+        }
+
+        // Initialize on load
+        renderCalendar();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

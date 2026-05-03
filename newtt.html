@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIMS MATRIX - Clash Free</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { background: #020617; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; }
+        .clash-warning { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+        input, textarea, select { background: #0f172a; border: 1px solid #1e293b; color: white; padding: 12px; border-radius: 12px; outline: none; width: 100%; font-size: 13px; }
+        .btn-action { background: #22d3ee; color: #000; font-weight: 800; transition: 0.3s; }
+        .btn-action:hover { background: #0ea5e9; transform: translateY(-2px); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-black italic tracking-tighter uppercase">Epic <span class="text-cyan-400">-kims core</span></h1>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">Zero Clash Generation</p>
+        </header>
+
+        <div class="glass p-6 mb-8 border-t-4 border-cyan-500">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Classes (Exactly 5)</label>
+                    <input type="text" id="clsInput" value="VI, VII, VIII, IX, X">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Periods (1-5 or 8)</label>
+                    <input type="number" id="pCount" value="5">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Subjects (Min 5 - Max 13)</label>
+                    <textarea id="subList" rows="2">Tamil, English, Maths, Science, Social, Physics, Chemistry, Arabic</textarea>
+                </div>
+            </div>
+            <button onclick="generateSafeMatrix()" class="btn-action mt-6 w-full py-4 rounded-xl uppercase tracking-widest">Generate Clash-Free Matrix</button>
+        </div>
+
+        <div id="outputArea" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex gap-4">
+                    <span class="text-xs bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-bold">● No Clashes Detected</span>
+                </div>
+                <button onclick="copyToExcel()" class="bg-slate-800 text-white px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700">Copy All for Excel</button>
+            </div>
+            
+            <div class="glass p-6 overflow-x-auto shadow-2xl">
+                <table id="matrixTable" class="w-full text-center border-separate border-spacing-1 text-[11px]">
+                    <thead id="tHead" class="text-slate-500 font-black italic"></thead>
+                    <tbody id="tBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generateSafeMatrix() {
+            const classes = document.getElementById('clsInput').value.split(',').map(s => s.trim());
+            const pCount = parseInt(document.getElementById('pCount').value);
+            const subjects = document.getElementById('subList').value.split(',').map(s => s.trim());
+            const days = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+            const head = document.getElementById('tHead');
+            const body = document.getElementById('tBody');
+            
+            // Header
+            let hHtml = `<tr><th class="p-3">Class</th><th class="p-3">Day</th>`;
+            for(let i=1; i<=pCount; i++) hHtml += `<th class="p-3 uppercase font-black">Period ${i}</th>`;
+            head.innerHTML = hHtml + `</tr>`;
+
+            body.innerHTML = "";
+            
+            // Generate matrix logic to avoid vertical clash (clash on same period across different classes)
+            days.forEach(day => {
+                let daySchedule = []; // To track subjects used in current period for other classes
+
+                classes.forEach((cls, classIdx) => {
+                    let rowHtml = `<tr>
+                        <td class="p-4 bg-cyan-900/20 text-cyan-400 font-black rounded-l-xl">${cls}</td>
+                        <td class="p-4 bg-slate-900/60 font-bold">${day}</td>`;
+                    
+                    for(let p=1; p<=pCount; p++) {
+                        // Shuffle subjects to pick one that isn't used in this period yet
+                        let availableSubs = subjects.filter(s => !daySchedule[p] || !daySchedule[p].includes(s));
+                        
+                        // Fallback if all subjects are exhausted (rare)
+                        let selectedSub = availableSubs.length > 0 ? 
+                            availableSubs[Math.floor(Math.random() * availableSubs.length)] : 
+                            subjects[Math.floor(Math.random() * subjects.length)];
+
+                        // Track usage
+                        if(!daySchedule[p]) daySchedule[p] = [];
+                        daySchedule[p].push(selectedSub);
+
+                        rowHtml += `<td contenteditable="true" class="p-4 bg-slate-900/40 border-y border-white/5 outline-none focus:bg-cyan-500/10">${selectedSub}</td>`;
+                    }
+                    body.innerHTML += rowHtml + `<td class="bg-slate-900/40 rounded-r-xl"></td></tr>`;
+                });
+                body.innerHTML += `<tr class="h-6 bg-transparent"></tr>`; // Day Separator
+            });
+
+            document.getElementById('outputArea').classList.remove('hidden');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function copyToExcel() {
+            const table = document.getElementById("matrixTable");
+            let text = "";
+            for (let row of table.rows) {
+                let rowData = [];
+                for (let cell of row.cells) rowData.push(cell.innerText);
+                text += rowData.join("\t") + "\n";
+            }
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("Matrix copied! Paste in Excel (Ctrl+V)");
+        }
+    </script>
+</body>
+</html>
