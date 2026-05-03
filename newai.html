@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIMS MATRIX - Subject Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { background: #020617; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-panel { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
+        .my-period { background: rgba(34, 211, 238, 0.2); color: #22d3ee; font-weight: 800; border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 8px; }
+        .other-period { color: #475569; opacity: 0.5; font-size: 11px; }
+        .day-header { background: #083344; color: #22d3ee; font-weight: 800; text-transform: uppercase; }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-black italic tracking-tighter uppercase">Epic- <span class="text-cyan-400">Kims core</span></h1>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Personalized Subject Finder</p>
+        </div>
+
+        <div class="glass-panel p-6 mb-10 max-w-xl mx-auto border-t-4 border-cyan-500 shadow-2xl">
+            <input type="text" id="userCode" placeholder="ENTER TEACHER CODE (T001) OR CLASS (VI)" 
+                class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl py-4 px-6 outline-none focus:border-cyan-500 transition font-black tracking-widest uppercase text-center text-xl">
+            <button onclick="loadAndSearch()" id="mainBtn" class="mt-4 w-full bg-cyan-600 hover:bg-cyan-400 text-black font-black py-4 rounded-2xl transition shadow-xl uppercase tracking-widest">
+                FIND MY SCHEDULE
+            </button>
+        </div>
+
+        <div id="mainDashboard" class="hidden">
+            <div class="glass-panel p-6 overflow-x-auto">
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <h3 id="displayTitle" class="text-2xl font-black italic text-white uppercase underline decoration-cyan-500">---</h3>
+                    <p id="subHint" class="text-[10px] font-bold text-slate-500 uppercase"></p>
+                </div>
+                
+                <table class="w-full text-center border-separate border-spacing-y-2">
+                    <thead>
+                        <tr class="text-[10px] text-slate-500 font-bold uppercase">
+                            <th class="p-4">Day</th>
+                            <th class="p-4">P1</th><th class="p-4">P2</th><th class="p-4">P3</th><th class="p-4">P4</th>
+                            <th class="p-4">P5</th><th class="p-4">P6</th><th class="p-4">P7</th><th class="p-4">P8</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ttBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQDfeTbUJ7XUK-pd8tHPB_svuhhfTyshDCHbObc42W5KzsMrcBLR7jjaXnI1Sc4pMg8xdUfW2PJlfXg/pub?output=csv";
+
+        function loadAndSearch() {
+            const input = document.getElementById('userCode').value.toUpperCase().trim();
+            if(!input) return;
+            document.getElementById('mainBtn').innerText = "SEARCHING...";
+
+            Papa.parse(sheetUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    processData(results.data, input);
+                    document.getElementById('mainBtn').innerText = "FIND MY SCHEDULE";
+                }
+            });
+        }
+
+        function processData(data, searchCode) {
+            const dashboard = document.getElementById('mainDashboard');
+            const ttBody = document.getElementById('ttBody');
+            const title = document.getElementById('displayTitle');
+            const subHint = document.getElementById('subHint');
+
+            // 1. First, find if it's a teacher or a class
+            const teacherMatch = data.find(r => r.Code && r.Code.toUpperCase().trim() === searchCode);
+            const classMatch = data.filter(r => r.Class && r.Class.toUpperCase().trim() === searchCode);
+
+            if (teacherMatch) {
+                // --- TEACHER LOGIC ---
+                const mySubject = teacherMatch['Subject Handle'] ? teacherMatch['Subject Handle'].toUpperCase().trim() : "";
+                const myName = teacherMatch['Teacher Name'];
+                title.innerText = "TEACHER: " + myName;
+                subHint.innerText = "Highlighting Subject: " + mySubject;
+                
+                ttBody.innerHTML = "";
+                // Logic: Search across ALL classes for this subject
+                const days = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+                
+                days.forEach(day => {
+                    let rowHtml = `<tr><td class="p-4 day-header rounded-l-xl text-xs">${day}</td>`;
+                    for(let i=1; i<=8; i++) {
+                        // Find which class has this teacher's subject on this day/period
+                        const periodKey = 'P' + i;
+                        const matchInClasses = data.find(r => 
+                            r.Day && r.Day.toUpperCase().trim() === day && 
+                            r[periodKey] && r[periodKey].toUpperCase().trim() === mySubject
+                        );
+
+                        if(matchInClasses) {
+                            rowHtml += `<td class="p-4 my-period text-xs">${matchInClasses.Class} <br> <span class="text-[8px] opacity-70">${mySubject}</span></td>`;
+                        } else {
+                            rowHtml += `<td class="p-4 other-period">-</td>`;
+                        }
+                    }
+                    rowHtml += `</tr>`;
+                    ttBody.innerHTML += rowHtml;
+                });
+                dashboard.classList.remove('hidden');
+
+            } else if (classMatch.length > 0) {
+                // --- CLASS LOGIC ---
+                title.innerText = "CLASS: " + searchCode;
+                subHint.innerText = "Full Weekly Schedule";
+                ttBody.innerHTML = "";
+                
+                classMatch.forEach(row => {
+                    let rowHtml = `<tr><td class="p-4 day-header rounded-l-xl text-xs">${row.Day}</td>`;
+                    for(let i=1; i<=8; i++) {
+                        rowHtml += `<td class="p-4 text-white font-bold border-y border-white/5 text-xs">${row['P'+i] || '-'}</td>`;
+                    }
+                    rowHtml += `</tr>`;
+                    ttBody.innerHTML += rowHtml;
+                });
+                dashboard.classList.remove('hidden');
+
+            } else {
+                alert("NOT FOUND!");
+            }
+            dashboard.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
